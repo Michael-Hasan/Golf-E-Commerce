@@ -1,0 +1,13 @@
+{
+  "name": "golf-ecommerce",
+  "private": true,
+  "description": "Golf e-commerce monorepo: NestJS API (backend/) + Vite React app (frontend/)",
+  "scripts": {
+    "start": "npm run start --prefix backend",
+    "start:dev": "npm run start:dev --prefix backend",
+    "build": "npm run build --prefix backend",
+    "dev": "node scripts/dev.mjs",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run start:dev --prefix backend"
+  }
+}
