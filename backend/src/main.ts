@@ -13,13 +13,22 @@ if (existsSync(cwdEnv) && cwdEnv !== backendEnv) {
   loadEnv({ path: cwdEnv });
 }
 import { NestFactory } from "@nestjs/core";
-import { ValidationPipe } from "@nestjs/common";
+import { ValidationPipe, VersioningType } from "@nestjs/common";
 import { AppModule } from "./app.module";
+import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
+import { AppLogger } from "./logging/logger.service";
 
 async function bootstrap() {
-  // eslint-disable-next-line no-console
-  console.log("Bootstrapping backend...");
+  const bootstrapLogger = new AppLogger().withContext("Bootstrap");
+  bootstrapLogger.log("Bootstrapping backend");
   const app = await NestFactory.create(AppModule);
+  const logger = app.get(AppLogger).withContext("Bootstrap");
+  app.useLogger(logger);
+  app.enableVersioning({
+    type: VersioningType.URI,
+    prefix: 'v',
+    defaultVersion: '1',
+  });
 
   const port = parseInt(process.env.PORT ?? "3000", 10) || 3000;
   const allowOrigin = new Set<string>([
@@ -41,29 +50,43 @@ async function bootstrap() {
       }
     },
   });
+  try {
+    // Helmet v8 is ESM-only; use dynamic import to support CommonJS builds.
+    const helmetModule = await import('helmet');
+    const helmet = helmetModule.default;
+    app.use(helmet());
+  } catch {
+    logger.warn('Helmet is not available; HTTP security headers are disabled');
+  }
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
+      forbidNonWhitelisted: true,
       transform: true,
     }),
   );
+  app.useGlobalFilters(new GlobalExceptionFilter(logger));
   await app.listen(port);
   const useDb = process.env.USE_IN_MEMORY_DB === "0";
-  // eslint-disable-next-line no-console
-  console.log(
-    `🚀 GraphQL server is running on http://localhost:${port}/graphql`,
+  logger.log(
+    `GraphQL server is running on http://localhost:${port}/graphql`,
   );
-  // eslint-disable-next-line no-console
-  console.log(
+  logger.log(
     useDb
-      ? "📦 Using PostgreSQL"
-      : "📦 Using in-memory storage (set USE_IN_MEMORY_DB=0 for PostgreSQL)",
+      ? "Using PostgreSQL"
+      : "Using in-memory storage (set USE_IN_MEMORY_DB=0 for PostgreSQL)",
   );
-  console.log("USE_IN_MEMORY_DB =", process.env.USE_IN_MEMORY_DB);
+  logger.log("Runtime storage mode", {
+    useInMemoryDb: process.env.USE_IN_MEMORY_DB !== "0",
+  });
 }
 
 bootstrap().catch((error) => {
-  // eslint-disable-next-line no-console
-  console.error("Backend failed to start:", error);
+  const bootstrapLogger = new AppLogger().withContext("Bootstrap");
+  bootstrapLogger.error("Backend failed to start", {
+    errorName: error instanceof Error ? error.name : "UnknownError",
+    message: error instanceof Error ? error.message : "Unknown error",
+    stack: error instanceof Error ? error.stack : undefined,
+  });
   process.exit(1);
 });

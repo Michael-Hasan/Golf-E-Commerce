@@ -3,12 +3,15 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { CatalogProductSource } from './catalog-product-source.enum';
 
 @Entity('catalog_products')
+@Index('idx_catalog_products_category', ['category'])
+@Index('idx_catalog_products_source_active_created', ['source', 'isActive', 'createdAt'])
 @ObjectType()
 export class CatalogProduct {
   @PrimaryGeneratedColumn('uuid')
@@ -38,7 +41,7 @@ export class CatalogProduct {
   @Field(() => Float)
   rating: number;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ name: 'review_count', type: 'int', default: 0 })
   @Field(() => Int)
   reviewCount: number;
 
@@ -46,11 +49,11 @@ export class CatalogProduct {
   @Field(() => Float)
   price: number;
 
-  @Column({ type: 'float', nullable: true })
+  @Column({ name: 'original_price', type: 'float', nullable: true })
   @Field(() => Float, { nullable: true })
   originalPrice?: number | null;
 
-  @Column({ type: 'float', nullable: true })
+  @Column({ name: 'sale_price', type: 'float', nullable: true })
   @Field(() => Float, { nullable: true })
   salePrice?: number | null;
 
@@ -58,7 +61,7 @@ export class CatalogProduct {
   @Field(() => String, { nullable: true })
   badge?: string | null;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ name: 'image_url', type: 'varchar', nullable: true })
   @Field(() => String, { nullable: true })
   imageUrl?: string | null;
 
@@ -66,11 +69,11 @@ export class CatalogProduct {
   @Field(() => String, { nullable: true })
   description?: string | null;
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ name: 'is_featured', type: 'boolean', default: false })
   @Field()
   isFeatured: boolean;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ name: 'is_active', type: 'boolean', default: true })
   @Field()
   isActive: boolean;
 

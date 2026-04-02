@@ -41,5 +41,15 @@ export class UsersService {
   async updateRole(userId: string, role: UserRole): Promise<User> {
     return this.userRepository.updateRole(userId, role);
   }
-}
 
+  async updateRefreshToken(
+    userId: string,
+    refreshTokenHash: string | null,
+  ): Promise<User> {
+    return this.userRepository.updateRefreshToken(userId, refreshTokenHash);
+  }
+
+  async clearRefreshToken(userId: string): Promise<User> {
+    return this.userRepository.updateRefreshToken(userId, null);
+  }
+}

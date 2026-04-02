@@ -4895,15 +4895,24 @@ function MyPage() {
 
     fetchMyPage(token).then((result) => {
       if (result.error || !result.data) {
-        clearToken();
-        setError(result.error ?? "Unauthorized");
-        navigate("/", { replace: true });
+        const message = result.error ?? "Unable to load account details";
+        const shouldLogout =
+          /unauthorized|invalid token|invalid access token|jwt/i.test(message);
+        if (shouldLogout) {
+          clearToken();
+          setError(t("myPage.sessionExpired"));
+          navigate("/", { replace: true });
+        } else {
+          // Don't force logout on transient backend errors (500, schema drift, etc.).
+          setError(message);
+          setLoading(false);
+        }
         return;
       }
       setMyPage(result.data);
       setLoading(false);
     });
-  }, [navigate]);
+  }, [navigate, t]);
 
   useEffect(() => {
     if (!myPage) return;

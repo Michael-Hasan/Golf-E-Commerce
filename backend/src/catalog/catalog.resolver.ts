@@ -4,17 +4,21 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { CatalogProduct } from './catalog-product.entity';
 import { CatalogService } from './catalog.service';
+import { CatalogProductsQueryInput } from './dto/catalog-products-query.input';
 import { CreateCatalogProductInput } from './dto/create-catalog-product.input';
 import { UpdateCatalogProductInput } from './dto/update-catalog-product.input';
+import { PaginatedCatalogProducts } from './models/paginated-catalog-products.model';
 
 @Resolver()
 @UseGuards(GqlAuthGuard, AdminGuard)
 export class CatalogResolver {
   constructor(private readonly catalogService: CatalogService) {}
 
-  @Query(() => [CatalogProduct])
-  adminCatalogProducts(): Promise<CatalogProduct[]> {
-    return this.catalogService.adminListProducts();
+  @Query(() => PaginatedCatalogProducts)
+  adminCatalogProducts(
+    @Args('input', { nullable: true }) input?: CatalogProductsQueryInput,
+  ): Promise<PaginatedCatalogProducts> {
+    return this.catalogService.adminListProducts(input ?? new CatalogProductsQueryInput());
   }
 
   @Mutation(() => CatalogProduct)

@@ -6,17 +6,17 @@ import { UsersRootModule } from "../users/users-root.module";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { GqlAuthGuard } from "./guards/gql-auth.guard";
 import { AdminGuard } from "./guards/admin.guard";
-import { CheckoutModule } from "../checkout/checkout.module";
 
 @Module({
   imports: [
     UsersRootModule.forRoot({
       useInMemory: process.env.USE_IN_MEMORY_DB !== "0",
     }),
-    CheckoutModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET ?? "super-secret-jwt-key",
-      signOptions: { expiresIn: "1h" },
+      signOptions: {
+        expiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? "15m",
+      },
     }),
   ],
   providers: [AuthService, AuthResolver, JwtStrategy, GqlAuthGuard, AdminGuard],

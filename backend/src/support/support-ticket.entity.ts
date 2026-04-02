@@ -3,11 +3,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
 @Entity('support_tickets')
+@Index('idx_support_tickets_email_created', ['email', 'createdAt'])
+@Index('idx_support_tickets_order_number', ['orderNumber'])
 @ObjectType()
 export class SupportTicket {
   @PrimaryGeneratedColumn('uuid')

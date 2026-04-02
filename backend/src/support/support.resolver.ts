@@ -1,35 +1,35 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { CreateSupportRequestInput } from './dto/create-support-request.input';
+import { SupportFaqsQueryInput } from './dto/support-faqs-query.input';
+import { SupportOrderLookupInput } from './dto/support-order-lookup.input';
+import { PaginatedSupportFaqs } from './models/paginated-support-faqs.model';
 import { SupportFaq } from './models/support-faq.model';
 import { SupportOrderStatus } from './models/support-order-status.model';
+import { SupportTicketResponse } from './models/support-ticket-response.model';
 import { SupportService } from './support.service';
-import { SupportTicket } from './support-ticket.entity';
 
 @Resolver()
 export class SupportResolver {
   constructor(private readonly supportService: SupportService) {}
 
-  @Query(() => [SupportFaq])
+  @Query(() => PaginatedSupportFaqs)
   supportFaqs(
-    @Args('locale', { nullable: true }) locale?: string,
-    @Args('category', { nullable: true }) category?: string,
-    @Args('featuredOnly', { nullable: true }) featuredOnly?: boolean,
-  ): SupportFaq[] {
-    return this.supportService.listFaqs(locale, category, featuredOnly);
+    @Args('input', { nullable: true }) input?: SupportFaqsQueryInput,
+  ): PaginatedSupportFaqs {
+    return this.supportService.listFaqs(input ?? new SupportFaqsQueryInput());
   }
 
-  @Mutation(() => SupportTicket)
+  @Mutation(() => SupportTicketResponse)
   submitSupportRequest(
     @Args('input') input: CreateSupportRequestInput,
-  ): Promise<SupportTicket> {
+  ): Promise<SupportTicketResponse> {
     return this.supportService.createSupportRequest(input);
   }
 
   @Query(() => SupportOrderStatus)
   supportOrderLookup(
-    @Args('orderNumber') orderNumber: string,
-    @Args('email') email: string,
-  ): SupportOrderStatus {
-    return this.supportService.lookupOrder(orderNumber, email);
+    @Args('input') input: SupportOrderLookupInput,
+  ): Promise<SupportOrderStatus> {
+    return this.supportService.lookupOrder(input);
   }
 }

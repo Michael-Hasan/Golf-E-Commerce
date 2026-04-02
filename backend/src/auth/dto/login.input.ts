@@ -1,14 +1,18 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsEmail, MinLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
 
 @InputType()
 export class LoginInput {
   @Field()
+  @Transform(({ value }) => String(value).trim().toLowerCase())
   @IsEmail()
+  @MaxLength(254)
   email: string;
 
   @Field()
-  @MinLength(6)
+  @IsString()
+  @MinLength(8)
+  @MaxLength(72)
   password: string;
 }
-

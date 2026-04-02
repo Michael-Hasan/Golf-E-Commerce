@@ -38,7 +38,13 @@ export class TypeOrmUserRepository implements IUserRepository {
     if (existing) {
       throw new Error('User with this email already exists');
     }
-    const user = this.repo.create({ email, phone, passwordHash, role });
+    const user = this.repo.create({
+      email,
+      phone,
+      passwordHash,
+      refreshTokenHash: null,
+      role,
+    });
     return this.repo.save(user);
   }
 
@@ -70,6 +76,18 @@ export class TypeOrmUserRepository implements IUserRepository {
       throw new Error('User not found');
     }
     user.role = role;
+    return this.repo.save(user);
+  }
+
+  async updateRefreshToken(
+    userId: string,
+    refreshTokenHash: string | null,
+  ): Promise<User> {
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    user.refreshTokenHash = refreshTokenHash;
     return this.repo.save(user);
   }
 }

@@ -1,10 +1,12 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
   IsNumber,
   IsOptional,
   IsString,
+  IsUrl,
   Min,
 } from 'class-validator';
 import { CatalogProductSource } from '../catalog-product-source.enum';
@@ -18,16 +20,19 @@ export class UpdateCatalogProductInput {
 
   @Field({ nullable: true })
   @IsOptional()
+  @Transform(({ value }) => (value == null ? value : String(value).trim()))
   @IsString()
   category?: string;
 
   @Field({ nullable: true })
   @IsOptional()
+  @Transform(({ value }) => (value == null ? value : String(value).trim()))
   @IsString()
   brand?: string;
 
   @Field({ nullable: true })
   @IsOptional()
+  @Transform(({ value }) => (value == null ? value : String(value).trim()))
   @IsString()
   name?: string;
 
@@ -63,16 +68,23 @@ export class UpdateCatalogProductInput {
 
   @Field({ nullable: true })
   @IsOptional()
+  @Transform(({ value }) => (value == null ? value : String(value).trim()))
   @IsString()
   badge?: string;
 
   @Field({ nullable: true })
   @IsOptional()
+  @Transform(({ value }) => (value == null ? value : String(value).trim()))
+  @IsUrl({
+    require_protocol: true,
+    protocols: ['http', 'https'],
+  })
   @IsString()
   imageUrl?: string;
 
   @Field({ nullable: true })
   @IsOptional()
+  @Transform(({ value }) => (value == null ? value : String(value).trim()))
   @IsString()
   description?: string;
 

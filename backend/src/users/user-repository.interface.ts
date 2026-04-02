@@ -18,4 +18,5 @@ export interface IUserRepository {
     input: { firstName?: string; lastName?: string; phone?: string },
   ): Promise<User>;
   updateRole(userId: string, role: UserRole): Promise<User>;
+  updateRefreshToken(userId: string, refreshTokenHash: string | null): Promise<User>;
 }

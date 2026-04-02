@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   Optional,
@@ -6,13 +7,20 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { AppCacheService } from '../shared/cache/app-cache.service';
 import { CatalogProduct } from './catalog-product.entity';
 import { CreateCatalogProductInput } from './dto/create-catalog-product.input';
+import { CatalogProductsQueryInput } from './dto/catalog-products-query.input';
 import { UpdateCatalogProductInput } from './dto/update-catalog-product.input';
+import { PaginatedCatalogProducts } from './models/paginated-catalog-products.model';
 
 @Injectable()
 export class CatalogService {
+  private readonly cacheTtlMs = 60_000;
+  private readonly cachePrefix = 'catalog:products:';
+
   constructor(
+    private readonly cache: AppCacheService,
     @Optional()
     @InjectRepository(CatalogProduct)
     private readonly catalogRepo?: Repository<CatalogProduct>,
@@ -27,15 +35,35 @@ export class CatalogService {
     return this.catalogRepo;
   }
 
-  async adminListProducts(): Promise<CatalogProduct[]> {
+  async adminListProducts(input: CatalogProductsQueryInput): Promise<PaginatedCatalogProducts> {
     if (!this.catalogRepo) {
-      return [];
+      return {
+        items: [],
+        total: 0,
+        page: input.page,
+        limit: input.limit,
+      };
     }
-    return this.catalogRepo.find({
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+
+    const catalogRepo = this.catalogRepo;
+    const cacheKey = `${this.cachePrefix}${input.page}:${input.limit}:${input.includeInactive}`;
+    return this.cache.getOrSet(cacheKey, async () => {
+      const [items, total] = await catalogRepo.findAndCount({
+        where: input.includeInactive ? {} : { isActive: true },
+        order: {
+          createdAt: 'DESC',
+        },
+        skip: (input.page - 1) * input.limit,
+        take: input.limit,
+      });
+
+      return {
+        items,
+        total,
+        page: input.page,
+        limit: input.limit,
+      };
+    }, { ttlMs: this.cacheTtlMs });
   }
 
   async adminCreateProduct(input: CreateCatalogProductInput): Promise<CatalogProduct> {
@@ -46,14 +74,16 @@ export class CatalogService {
       brand: input.brand.trim(),
       name: input.name.trim(),
       badge: input.badge?.trim() || null,
-      imageUrl: input.imageUrl?.trim() || null,
+      imageUrl: this.normalizeImageUrl(input.imageUrl),
       description: input.description?.trim() || null,
       reviewCount: input.reviewCount ?? 0,
       rating: input.rating ?? 0,
       isFeatured: input.isFeatured ?? false,
       isActive: input.isActive ?? true,
     });
-    return catalogRepo.save(entity);
+    const saved = await catalogRepo.save(entity);
+    await this.cache.deleteByPrefix(this.cachePrefix);
+    return saved;
   }
 
   async adminUpdateProduct(
@@ -75,19 +105,37 @@ export class CatalogService {
       imageUrl:
         input.imageUrl === undefined
           ? existing.imageUrl
-          : input.imageUrl?.trim() || null,
+          : this.normalizeImageUrl(input.imageUrl),
       description:
         input.description === undefined
           ? existing.description
           : input.description?.trim() || null,
     });
 
-    return catalogRepo.save(existing);
+    const saved = await catalogRepo.save(existing);
+    await this.cache.deleteByPrefix(this.cachePrefix);
+    return saved;
   }
 
   async adminDeleteProduct(id: string): Promise<boolean> {
     const catalogRepo = this.requireRepo();
     const result = await catalogRepo.delete({ id });
+    await this.cache.deleteByPrefix(this.cachePrefix);
     return (result.affected ?? 0) > 0;
+  }
+
+  private normalizeImageUrl(imageUrl?: string | null): string | null {
+    if (!imageUrl) {
+      return null;
+    }
+
+    const normalized = imageUrl.trim();
+    if (/^https?:\/\//i.test(normalized)) {
+      return normalized;
+    }
+
+    throw new BadRequestException(
+      'Catalog product images must use absolute CDN URLs (Cloudinary, S3, etc.).',
+    );
   }
 }

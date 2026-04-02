@@ -1,15 +1,20 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
   Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CheckoutService } from '../checkout/checkout.service';
+import { ORDER_READER, OrderReader } from '../shared/contracts/order-reader.contract';
 import { CreateSupportRequestInput } from './dto/create-support-request.input';
+import { SupportFaqsQueryInput } from './dto/support-faqs-query.input';
+import { SupportOrderLookupInput } from './dto/support-order-lookup.input';
+import { PaginatedSupportFaqs } from './models/paginated-support-faqs.model';
 import { SupportFaq } from './models/support-faq.model';
 import { SupportOrderStatus } from './models/support-order-status.model';
+import { SupportTicketResponse } from './models/support-ticket-response.model';
 import { SupportTicket } from './support-ticket.entity';
 
 const FAQS_BY_LOCALE: Record<string, SupportFaq[]> = {
@@ -188,23 +193,23 @@ export class SupportService {
   private readonly inMemoryTickets: SupportTicket[] = [];
 
   constructor(
-    private readonly checkoutService: CheckoutService,
+    @Inject(ORDER_READER)
+    private readonly orderReader: OrderReader,
     @Optional()
     @InjectRepository(SupportTicket)
     private readonly ticketRepository?: Repository<SupportTicket>,
   ) {}
 
-  listFaqs(locale?: string, category?: string, featuredOnly?: boolean): SupportFaq[] {
-    const normalizedLocale = locale?.trim().toLowerCase().startsWith('ko')
+  listFaqs(input: SupportFaqsQueryInput): PaginatedSupportFaqs {
+    const normalizedLocale = input.locale?.trim().toLowerCase().startsWith('ko')
       ? 'ko'
-      : locale?.trim().toLowerCase().startsWith('uz')
+      : input.locale?.trim().toLowerCase().startsWith('uz')
         ? 'uz'
         : 'en';
-    const normalizedCategory = category?.trim().toLowerCase();
+    const normalizedCategory = input.category?.trim().toLowerCase();
     const faqs = FAQS_BY_LOCALE[normalizedLocale] ?? FAQS_BY_LOCALE.en;
-
-    return faqs.filter((item) => {
-      if (featuredOnly && !item.featured) {
+    const filtered = faqs.filter((item) => {
+      if (input.featuredOnly && !item.featured) {
         return false;
       }
       if (normalizedCategory && normalizedCategory !== 'all') {
@@ -212,11 +217,19 @@ export class SupportService {
       }
       return true;
     });
+
+    const start = (input.page - 1) * input.limit;
+    return {
+      items: filtered.slice(start, start + input.limit),
+      total: filtered.length,
+      page: input.page,
+      limit: input.limit,
+    };
   }
 
   async createSupportRequest(
     input: CreateSupportRequestInput,
-  ): Promise<SupportTicket> {
+  ): Promise<SupportTicketResponse> {
     const name = input.name?.trim() ?? '';
     const email = input.email?.trim().toLowerCase() ?? '';
     const topic = input.topic?.trim() ?? '';
@@ -239,7 +252,8 @@ export class SupportService {
 
     if (this.ticketRepository) {
       const entity = this.ticketRepository.create(ticketData);
-      return this.ticketRepository.save(entity);
+      const saved = await this.ticketRepository.save(entity);
+      return this.toSupportTicketResponse(saved);
     }
 
     const now = new Date();
@@ -256,13 +270,13 @@ export class SupportService {
       updatedAt: now,
     };
     this.inMemoryTickets.unshift(fallback);
-    return fallback;
+    return this.toSupportTicketResponse(fallback);
   }
 
-  lookupOrder(orderNumber: string, email: string): SupportOrderStatus {
-    const normalizedOrder = orderNumber.trim();
-    const normalizedEmail = email.trim().toLowerCase();
-    const order = this.checkoutService.getOrderByNumber(normalizedOrder);
+  async lookupOrder(input: SupportOrderLookupInput): Promise<SupportOrderStatus> {
+    const normalizedOrder = input.orderNumber.trim();
+    const normalizedEmail = input.email.trim().toLowerCase();
+    const order = await this.orderReader.getOrderByNumber(normalizedOrder);
 
     if (!order) {
       throw new NotFoundException('Order not found.');
@@ -309,5 +323,15 @@ export class SupportService {
     const stamp = Date.now().toString().slice(-6);
     const random = Math.floor(100 + Math.random() * 900);
     return `SUP-${stamp}-${random}`;
+  }
+
+  private toSupportTicketResponse(ticket: SupportTicket): SupportTicketResponse {
+    return {
+      referenceNumber: ticket.referenceNumber,
+      status: ticket.status,
+      topic: ticket.topic,
+      orderNumber: ticket.orderNumber,
+      createdAt: ticket.createdAt,
+    };
   }
 }

@@ -35,6 +35,7 @@ export class InMemoryUserRepository implements IUserRepository {
       email,
       phone,
       passwordHash,
+      refreshTokenHash: null,
       role,
       createdAt: new Date(),
     };
@@ -68,6 +69,18 @@ export class InMemoryUserRepository implements IUserRepository {
       throw new Error('User not found');
     }
     this.users[index] = { ...this.users[index], role };
+    return this.users[index];
+  }
+
+  async updateRefreshToken(
+    userId: string,
+    refreshTokenHash: string | null,
+  ): Promise<User> {
+    const index = this.users.findIndex((u) => u.id === userId);
+    if (index < 0) {
+      throw new Error('User not found');
+    }
+    this.users[index] = { ...this.users[index], refreshTokenHash };
     return this.users[index];
   }
 }

@@ -1,22 +1,47 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/user.entity';
-import { MyPageData } from './models/my-page.model';
-import { UpdateProfileInput } from './dto/update-profile.input';
 import { UserRole } from '../users/user-role.enum';
-import { CheckoutService } from '../checkout/checkout.service';
+import { RefreshTokenInput } from './dto/refresh-token.input';
+import { AppLogger } from '../logging/logger.service';
+
+type AuthTokens = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+type JwtPayload = {
+  sub: string;
+  email: string;
+  role: UserRole;
+  tokenType: 'access' | 'refresh';
+};
 
 @Injectable()
 export class AuthService {
+  private readonly saltRounds = 12;
+  private readonly accessTokenTtl = process.env.JWT_ACCESS_EXPIRES_IN ?? '15m';
+  private readonly refreshTokenTtl = process.env.JWT_REFRESH_EXPIRES_IN ?? '7d';
+  private readonly refreshTokenSecret =
+    process.env.JWT_REFRESH_SECRET ??
+    process.env.JWT_SECRET ??
+    'super-secret-jwt-refresh-key';
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
-    private readonly checkoutService: CheckoutService,
-  ) {}
+    logger: AppLogger,
+  ) {
+    this.logger = logger.withContext(AuthService.name);
+  }
 
-  private readonly saltRounds = 10;
+  private readonly logger: AppLogger;
 
   private isAdminEmail(email: string): boolean {
     const configured = process.env.ADMIN_EMAILS ?? '';
@@ -31,33 +56,62 @@ export class AuthService {
     email: string,
     phone: string,
     password: string,
-  ): Promise<{ user: User; accessToken: string }> {
+  ): Promise<{ user: User } & AuthTokens> {
     const passwordHash = await bcrypt.hash(password, this.saltRounds);
     const role = this.isAdminEmail(email) ? UserRole.ADMIN : UserRole.CUSTOMER;
-    const user = await this.usersService.create(email, phone, passwordHash, role);
-    const accessToken = await this.generateToken(user);
-    return { user, accessToken };
+
+    try {
+      const user = await this.usersService.create(email, phone, passwordHash, role);
+      const tokens = await this.issueTokens(user);
+      await this.storeRefreshToken(user.id, tokens.refreshToken);
+      this.logger.log('User signup succeeded', {
+        userId: user.id,
+        role: user.role,
+      });
+      return { user, ...tokens };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('already exists')) {
+        this.logger.warn('Signup rejected for duplicate email', {
+          emailHint: this.maskEmail(email),
+        });
+        throw new ConflictException('An account with this email already exists');
+      }
+      throw error;
+    }
   }
 
   async validateUser(email: string, password: string): Promise<User> {
     const user = await this.usersService.findByEmail(email);
     if (!user) {
+      this.logger.warn('Failed login attempt', {
+        emailHint: this.maskEmail(email),
+        reason: 'user_not_found',
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
+      this.logger.warn('Failed login attempt', {
+        userId: user.id,
+        reason: 'invalid_password',
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     return user;
   }
 
-  async login(email: string, password: string): Promise<{ user: User; accessToken: string }> {
+  async login(email: string, password: string): Promise<{ user: User } & AuthTokens> {
     const user = await this.validateUser(email, password);
     const syncedUser = await this.syncAdminRoleFromEnv(user);
-    const accessToken = await this.generateToken(syncedUser);
-    return { user: syncedUser, accessToken };
+    const tokens = await this.issueTokens(syncedUser);
+    await this.storeRefreshToken(syncedUser.id, tokens.refreshToken);
+    this.logger.log('User login succeeded', {
+      userId: syncedUser.id,
+      role: syncedUser.role,
+    });
+    return { user: syncedUser, ...tokens };
   }
 
   private async syncAdminRoleFromEnv(user: User): Promise<User> {
@@ -70,105 +124,108 @@ export class AuthService {
     return this.usersService.updateRole(user.id, UserRole.ADMIN);
   }
 
-  private async generateToken(user: User): Promise<string> {
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    return this.jwtService.signAsync(payload);
+  async refreshTokens(input: RefreshTokenInput): Promise<{ user: User } & AuthTokens> {
+    const payload = await this.verifyRefreshToken(input.refreshToken);
+    const user = await this.usersService.findById(payload.sub);
+
+    if (!user || !user.refreshTokenHash) {
+      this.logger.warn('Refresh token misuse detected', {
+        userId: payload.sub,
+        reason: 'missing_stored_refresh_token',
+      });
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const isRefreshTokenValid = await bcrypt.compare(
+      input.refreshToken,
+      user.refreshTokenHash,
+    );
+    if (!isRefreshTokenValid) {
+      this.logger.warn('Refresh token misuse detected', {
+        userId: user.id,
+        reason: 'refresh_token_hash_mismatch',
+      });
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const syncedUser = await this.syncAdminRoleFromEnv(user);
+    const tokens = await this.issueTokens(syncedUser);
+    await this.storeRefreshToken(syncedUser.id, tokens.refreshToken);
+    this.logger.log('Refresh token rotated', {
+      userId: syncedUser.id,
+    });
+    return { user: syncedUser, ...tokens };
+  }
+
+  async logout(userId: string): Promise<boolean> {
+    await this.usersService.clearRefreshToken(userId);
+    this.logger.log('User logged out', { userId });
+    return true;
   }
 
   getCurrentUser(user: User): User {
     return user;
   }
 
-  async getMyPageData(user: User): Promise<MyPageData> {
-    const displayName = this.toDisplayName(user);
-    const recentOrders = this.checkoutService.getRecentOrdersForEmail(user.email);
-    const wishlist = [
-      {
-        brand: 'Scotty Cameron',
-        productName: 'Scotty Cameron Phantom',
-        price: 449.99,
-      },
-      {
-        brand: 'Bushnell',
-        productName: 'Bushnell Pro X3 Rangefinder',
-        price: 549.99,
-      },
-      {
-        brand: 'FootJoy',
-        productName: 'FootJoy Tour Alpha',
-        price: 219.99,
-      },
-    ];
-    const rewardPoints = recentOrders.reduce(
-      (sum, order) => sum + Math.round(order.totalAmount),
-      0,
-    );
-
-    return {
-      user,
-      displayName,
-      memberTier: 'Gold Member',
-      stats: {
-        totalOrders: recentOrders.length,
-        wishlistItems: wishlist.length,
-        rewardPoints,
-      },
-      recentOrders,
-      wishlist,
-      savedAddresses: [
-        {
-          label: 'Home',
-          line1: '123 Golf Course Drive',
-          line2: '',
-          city: 'Pebble Beach',
-          region: 'CA',
-          postalCode: '93953',
-          country: 'United States',
-          isDefault: true,
-        },
-        {
-          label: 'Office',
-          line1: '456 Business Park Ave',
-          line2: 'Suite 200',
-          city: 'San Francisco',
-          region: 'CA',
-          postalCode: '94107',
-          country: 'United States',
-          isDefault: false,
-        },
-      ],
+  private async issueTokens(user: User): Promise<AuthTokens> {
+    const accessPayload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      tokenType: 'access',
     };
+    const refreshPayload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      tokenType: 'refresh',
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(accessPayload, {
+        expiresIn: this.accessTokenTtl,
+      }),
+      this.jwtService.signAsync(refreshPayload, {
+        secret: this.refreshTokenSecret,
+        expiresIn: this.refreshTokenTtl,
+      }),
+    ]);
+
+    return { accessToken, refreshToken };
   }
 
-  async updateMyProfile(user: User, input: UpdateProfileInput): Promise<MyPageData> {
-    const updatedUser = await this.usersService.updateProfile(user.id, {
-      firstName: input.firstName?.trim(),
-      lastName: input.lastName?.trim(),
-      phone: input.phone?.trim(),
-    });
-    return this.getMyPageData(updatedUser);
+  private async storeRefreshToken(userId: string, refreshToken: string): Promise<void> {
+    const refreshTokenHash = await bcrypt.hash(refreshToken, this.saltRounds);
+    await this.usersService.updateRefreshToken(userId, refreshTokenHash);
   }
 
-  private toDisplayName(user: User): string {
-    const fullName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
-    if (fullName) {
-      return fullName;
+  private async verifyRefreshToken(refreshToken: string): Promise<JwtPayload> {
+    try {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(refreshToken, {
+        secret: this.refreshTokenSecret,
+      });
+
+      if (payload.tokenType !== 'refresh') {
+        this.logger.warn('Refresh token misuse detected', {
+          reason: 'non_refresh_token_supplied',
+        });
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      return payload;
+    } catch {
+      this.logger.warn('Refresh token verification failed', {
+        reason: 'token_verification_failed',
+      });
+      throw new UnauthorizedException('Invalid refresh token');
     }
+  }
 
-    const email = user.email;
-    const localPart = email.split('@')[0] ?? '';
-    const words = localPart
-      .split(/[._-]+/)
-      .map((word) => word.trim())
-      .filter(Boolean)
-      .slice(0, 2);
-
-    if (!words.length) {
-      return 'Golf Member';
+  private maskEmail(email: string): string {
+    const [localPart, domain] = email.trim().toLowerCase().split('@');
+    if (!localPart || !domain) {
+      return 'unknown';
     }
-
-    return words
-      .map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+    return `${localPart.slice(0, 2)}***@${domain}`;
   }
 }

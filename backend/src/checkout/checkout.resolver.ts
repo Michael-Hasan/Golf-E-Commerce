@@ -1,21 +1,22 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { FindCheckoutOrderInput } from './dto/find-checkout-order.input';
 import { PlaceOrderInput } from './dto/place-order.input';
 import { CheckoutService } from './checkout.service';
-import { CheckoutOrderResult } from './models/order-result.model';
+import { Order } from './entities/order.entity';
 
 @Resolver()
 export class CheckoutResolver {
   constructor(private readonly checkoutService: CheckoutService) {}
 
-  @Mutation(() => CheckoutOrderResult)
-  placeOrder(@Args('input') input: PlaceOrderInput): CheckoutOrderResult {
+  @Mutation(() => Order)
+  placeOrder(@Args('input') input: PlaceOrderInput): Promise<Order> {
     return this.checkoutService.placeOrder(input);
   }
 
-  @Query(() => CheckoutOrderResult, { nullable: true })
+  @Query(() => Order, { nullable: true })
   checkoutOrderByNumber(
-    @Args('orderNumber') orderNumber: string,
-  ): CheckoutOrderResult | null {
-    return this.checkoutService.getOrderByNumber(orderNumber);
+    @Args('input') input: FindCheckoutOrderInput,
+  ): Promise<Order | null> {
+    return this.checkoutService.getOrderByNumber(input.orderNumber);
   }
 }

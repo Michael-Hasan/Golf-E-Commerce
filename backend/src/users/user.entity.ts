@@ -4,10 +4,12 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { UserRole } from './user-role.enum';
 
 @Entity('users')
+@Index('idx_users_email', ['email'])
 @ObjectType()
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -33,6 +35,9 @@ export class User {
   @Column({ name: 'password_hash' })
   passwordHash: string;
 
+  @Column({ type: 'varchar', name: 'refresh_token_hash', nullable: true })
+  refreshTokenHash?: string | null;
+
   @Column({
     type: 'enum',
     enum: UserRole,
@@ -44,4 +49,3 @@ export class User {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
-

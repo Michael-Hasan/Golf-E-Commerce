@@ -22,7 +22,7 @@ export class CheckoutLineItem {
 }
 
 @ObjectType()
-export class CheckoutOrderResult {
+export class CheckoutOrder {
   @Field()
   orderNumber: string;
 
