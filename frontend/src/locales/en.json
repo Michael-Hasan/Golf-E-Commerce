@@ -141,6 +141,7 @@
     "nearbyShopsEmpty": "No golf shops were found nearby.",
     "shopByCategory": "Shop by Category",
     "shopByCategorySub": "Find exactly what you need to improve your game",
+    "productCountLabel": "{{count}} Products",
     "shopByCategoryCardDriversTitle": "Drivers",
     "shopByCategoryCardDriversDesc": "Maximum distance off the tee",
     "shopByCategoryCardDriversCount": "200+ Products",

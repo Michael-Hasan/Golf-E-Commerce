@@ -141,6 +141,7 @@
     "nearbyShopsEmpty": "Yaqin atrofda golf do'konlari topilmadi.",
     "shopByCategory": "Kategoriya boʻyicha",
     "shopByCategorySub": "Oʻyinni yaxshilash uchun kerakli narsani toping",
+    "productCountLabel": "{{count}} mahsulot",
     "shopByCategoryCardDriversTitle": "Drayverlar",
     "shopByCategoryCardDriversDesc": "Tishdan maksimal masofa",
     "shopByCategoryCardDriversCount": "200+ mahsulot",

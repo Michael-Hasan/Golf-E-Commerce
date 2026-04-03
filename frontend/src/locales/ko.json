@@ -141,6 +141,7 @@
     "nearbyShopsEmpty": "근처에서 골프 매장을 찾지 못했습니다.",
     "shopByCategory": "카테고리별 쇼핑",
     "shopByCategorySub": "게임 향상에 필요한 것을 정확히 찾아보세요",
+    "productCountLabel": "{{count}} 제품",
     "shopByCategoryCardDriversTitle": "드라이버",
     "shopByCategoryCardDriversDesc": "티샷에서 최대 비거리",
     "shopByCategoryCardDriversCount": "200+ 제품",

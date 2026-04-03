@@ -17,9 +17,9 @@ services:
     container_name: golf-ecommerce-db-prod
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: golf_ecommerce
+      POSTGRES_USER: marvel
+      POSTGRES_PASSWORD: marvel
+      POSTGRES_DB: marvel
     volumes:
       - pgdata_prod:/var/lib/postgresql/data
 

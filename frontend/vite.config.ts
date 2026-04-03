@@ -10,7 +10,20 @@ export default defineConfig({
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+      "/v1/ai-chat": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+      "/v1/admin/uploads": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
       "/chat": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        ws: true,
+      },
+      "/socket.io": {
         target: "http://localhost:3000",
         changeOrigin: true,
         ws: true,

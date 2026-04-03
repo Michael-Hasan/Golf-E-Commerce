@@ -62,8 +62,23 @@ export class AppLogger implements LoggerService {
   }
 
   private write(level: LogLevel, message: string, metadata?: LogMetadata): void {
+    if (this.shouldSuppress(level, message)) {
+      return;
+    }
     const payload = this.sanitize(metadata ?? {}) as Record<string, unknown>;
     this.logger[level](payload, message);
+  }
+
+  private shouldSuppress(level: LogLevel, message: string): boolean {
+    if (level !== 'info' || this.context !== 'Bootstrap') {
+      return false;
+    }
+
+    return (
+      message.includes('subscribed to the "') ||
+      message.startsWith('Mapped {') ||
+      (message.includes('Controller {') && message.endsWith(':'))
+    );
   }
 
   private normalize(
