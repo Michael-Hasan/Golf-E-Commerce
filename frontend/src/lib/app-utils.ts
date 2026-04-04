@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import type { TFunction } from "i18next";
 import {
   AI_HISTORY_PREFIX,
@@ -49,6 +50,8 @@ type GreenlinksAiOpenDetail = {
 };
 export type { GreenlinksAiOpenDetail };
 
+const AUTH_STATE_EVENT = "auth:state-changed";
+
 export type NearbyGolfShop = {
   id: string;
   name: string;
@@ -76,17 +79,90 @@ export function openGreenlinksAiAssistant(
   window.dispatchEvent(new CustomEvent(GREENLINKS_AI_OPEN_EVENT, { detail }));
 }
 
-export function readStoredToken(): string | null {
+function parseJwtPayload(token: string): Record<string, unknown> | null {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    const [, payload] = token.split(".");
+    if (!payload) {
+      return null;
+    }
+
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(
+      normalized.length + ((4 - (normalized.length % 4)) % 4),
+      "=",
+    );
+    return JSON.parse(atob(padded)) as Record<string, unknown>;
   } catch {
     return null;
   }
 }
 
+function isStoredTokenActive(token: string): boolean {
+  const payload = parseJwtPayload(token);
+  if (!payload) {
+    return false;
+  }
+
+  const exp = payload.exp;
+  if (typeof exp !== "number") {
+    return true;
+  }
+
+  return exp * 1000 > Date.now();
+}
+
+export function readStoredToken(): string | null {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      return null;
+    }
+
+    return isStoredTokenActive(token) ? token : null;
+  } catch {
+    return null;
+  }
+}
+
+function notifyAuthStateChanged() {
+  window.dispatchEvent(new Event(AUTH_STATE_EVENT));
+}
+
+function subscribeToStoredToken(onStoreChange: () => void) {
+  const handleAuthStateChanged = () => onStoreChange();
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key === TOKEN_KEY) {
+      onStoreChange();
+    }
+  };
+
+  window.addEventListener(AUTH_STATE_EVENT, handleAuthStateChanged);
+  window.addEventListener("storage", handleStorage);
+
+  return () => {
+    window.removeEventListener(AUTH_STATE_EVENT, handleAuthStateChanged);
+    window.removeEventListener("storage", handleStorage);
+  };
+}
+
+export function useStoredToken(): string | null {
+  return useSyncExternalStore(subscribeToStoredToken, readStoredToken, () => null);
+}
+
+export function useIsAuthenticated(): boolean {
+  return Boolean(useStoredToken());
+}
+
 export function persistToken(token: string): void {
   try {
+    if (!isStoredTokenActive(token)) {
+      localStorage.removeItem(TOKEN_KEY);
+      notifyAuthStateChanged();
+      return;
+    }
+
     localStorage.setItem(TOKEN_KEY, token);
+    notifyAuthStateChanged();
   } catch {
     // Ignore storage errors (private mode / restricted browser settings).
   }
@@ -175,12 +251,12 @@ export function getChatIdentityFromToken(token: string | null): ChatIdentity {
   }
 
   try {
-    const parts = token.split(".");
-    if (parts.length < 2) {
+    const payload = parseJwtPayload(token) as
+      | { sub?: string; email?: string }
+      | null;
+    if (!payload) {
       throw new Error("Invalid token");
     }
-    const payloadRaw = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
-    const payload = JSON.parse(payloadRaw) as { sub?: string; email?: string };
     const userNameFromEmail =
       payload.email
         ?.split("@")[0]
@@ -205,6 +281,7 @@ export function getChatIdentityFromToken(token: string | null): ChatIdentity {
 export function clearToken(): void {
   try {
     localStorage.removeItem(TOKEN_KEY);
+    notifyAuthStateChanged();
   } catch {
     // Ignore storage errors (private mode / restricted browser settings).
   }

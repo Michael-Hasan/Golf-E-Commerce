@@ -35,11 +35,11 @@ import {
   readAiHistory,
   readCartItems,
   readHiddenChatMessageIds,
-  readStoredToken,
   readUnreadChatCount,
   readWishlistIds,
   saveNewsletterEmail,
   translatePriceFilterLabel,
+  useIsAuthenticated,
 } from "./lib/app-utils";
 import {
   adminCreateCatalogProduct,
@@ -149,7 +149,7 @@ const AiAssistantWidget = lazyNamed(loadSecondaryPages, "AiAssistantWidget");
 
 function HomePage() {
   const { t } = useTranslation();
-  const isAuthenticated = Boolean(readStoredToken());
+  const isAuthenticated = useIsAuthenticated();
   const accountPath = isAuthenticated ? "/my-page" : "/auth";
   const [featured, setFeatured] = useState<ClubItem[]>([]);
   const [spotlightBall, setSpotlightBall] = useState<BallItem | null>(null);

@@ -66,6 +66,7 @@ import {
   CART_KEY,
   CHAT_WS_ENDPOINT,
   GREENLINKS_AI_OPEN_EVENT,
+  SOCKET_IO_PATH,
   WISHLIST_KEY,
 } from "../config/app-config";
 import { PRICE_FILTER_OPTIONS } from "../constants/commerce";
@@ -7781,7 +7782,13 @@ function ChatWidget() {
 
   useEffect(() => {
     const socket = io(CHAT_WS_ENDPOINT, {
+      path: SOCKET_IO_PATH,
       transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 4000,
+      timeout: 5000,
     });
     socketRef.current = socket;
 

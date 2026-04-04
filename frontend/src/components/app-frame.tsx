@@ -13,10 +13,10 @@ import {
   persistCartItems,
   persistWishlistIds,
   readCartItems,
-  readStoredToken,
   readWishlistIds,
   saveNewsletterEmail,
   translatePriceFilterLabel,
+  useIsAuthenticated,
 } from "../lib/app-utils";
 import {
   fetchAccessoryProducts,
@@ -199,7 +199,7 @@ function TopNav({
   const isUzHeader = normalizeLang(i18n.language) === "uz";
   const isKoHeader = normalizeLang(i18n.language) === "ko";
   const placeholder = searchPlaceholder ?? t("search.placeholderNav");
-  const isAuthenticated = Boolean(readStoredToken());
+  const isAuthenticated = useIsAuthenticated();
   const [activePanel, setActivePanel] = useState<"wishlist" | "cart" | null>(
     null,
   );
