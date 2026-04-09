@@ -8,48 +8,22 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { mkdirSync } from 'fs';
+import { extname } from 'path';
+import { localProductImageStorage } from '../storage/product-image-storage';
 import { HttpAdminGuard } from './guards/http-admin.guard';
 
+type UploadedProductImageFile = {
+  filename?: string;
+};
+
 /** Repo layout: backend/src/admin or backend/dist/admin → monorepo root is three levels up. */
-function resolveProductImagesUploadDir(): string {
-  const override = process.env.PRODUCT_IMAGE_UPLOAD_DIR?.trim();
-  if (override) {
-    return override;
-  }
-  return join(__dirname, '..', '..', '..', 'frontend', 'public', 'products');
-}
-
-function sanitizeFilename(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9.-]/g, '-')
-    .replace(/-+/g, '-');
-}
-
 @Controller('admin/uploads')
 @UseGuards(AuthGuard('jwt'), HttpAdminGuard)
 export class AdminUploadController {
   @Post('product-image')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (_req, _file, cb) => {
-          const targetDir = resolveProductImagesUploadDir();
-          mkdirSync(targetDir, { recursive: true });
-          cb(null, targetDir);
-        },
-        filename: (_req, file, cb) => {
-          const extension = extname(file.originalname || '').toLowerCase();
-          const base = sanitizeFilename(
-            (file.originalname || 'upload').replace(/\.[^/.]+$/, ''),
-          );
-          const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-          cb(null, `${base || 'product'}-${unique}${extension}`);
-        },
-      }),
+      storage: localProductImageStorage.createStorageEngine(),
       limits: { fileSize: 5 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         const extension = extname(file.originalname || '').toLowerCase();
@@ -62,12 +36,12 @@ export class AdminUploadController {
       },
     }),
   )
-  uploadProductImage(@UploadedFile() file: any): { imageUrl: string; filename: string } {
+  uploadProductImage(@UploadedFile() file: UploadedProductImageFile): { imageUrl: string; filename: string } {
     if (!file?.filename) {
       throw new BadRequestException('No image file uploaded');
     }
     return {
-      imageUrl: `/products/${file.filename}`,
+      imageUrl: localProductImageStorage.getAssetUrl(file.filename),
       filename: file.filename,
     };
   }

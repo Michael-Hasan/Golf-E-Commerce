@@ -1,4 +1,11 @@
-import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  Suspense,
+  lazy,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   BrowserRouter,
@@ -47,7 +54,6 @@ import {
   adminUpdateCatalogProduct,
   adminUpdateUserRole,
   callAuthMutation,
-  callGraphql,
   fetchAccessoryProducts,
   fetchAdminCatalogProducts,
   fetchAdminUsers,
@@ -64,11 +70,8 @@ import {
   updateMyProfile,
   uploadAdminProductImage,
 } from "./lib/catalog-api";
-import type {
-  GreenlinksAiOpenDetail,
-  NearbyGolfShop,
-} from "./lib/app-utils";
-import type { AdminCatalogProduct, AdminUser } from "./lib/catalog-api";
+import type { GreenlinksAiOpenDetail, NearbyGolfShop } from "./lib/app-utils";
+import type { AdminUser } from "./lib/catalog-api";
 import { useTheme } from "./theme-context";
 import { SiteNavDesktop, SiteNavMobileDrawer } from "./components/SiteNav";
 import {
@@ -88,7 +91,10 @@ import {
   WISHLIST_KEY,
 } from "./config/app-config";
 import { PRICE_FILTER_OPTIONS } from "./constants/commerce";
-import { CITY_OPTIONS_BY_COUNTRY, COUNTRY_OPTIONS } from "./constants/locations";
+import {
+  CITY_OPTIONS_BY_COUNTRY,
+  COUNTRY_OPTIONS,
+} from "./constants/locations";
 import AboutPageView from "./pages/AboutPageView";
 import CompanyMarketingPageView from "./pages/CompanyMarketingPageView";
 import SupportPageView from "./pages/SupportPageView";
@@ -127,12 +133,6 @@ const lazyNamed = <T extends object, K extends keyof T>(
 const loadSecondaryPages = () => import("./pages/secondary-pages");
 const AuthPage = lazyNamed(loadSecondaryPages, "AuthPage");
 const MyPage = lazyNamed(loadSecondaryPages, "MyPage");
-const SalePage = lazyNamed(loadSecondaryPages, "SalePage");
-const ClubsPage = lazyNamed(loadSecondaryPages, "ClubsPage");
-const BallsPage = lazyNamed(loadSecondaryPages, "BallsPage");
-const BagsPage = lazyNamed(loadSecondaryPages, "BagsPage");
-const ApparelPage = lazyNamed(loadSecondaryPages, "ApparelPage");
-const AccessoriesPage = lazyNamed(loadSecondaryPages, "AccessoriesPage");
 const WishlistPage = lazyNamed(loadSecondaryPages, "WishlistPage");
 const ProductDetailPage = lazyNamed(loadSecondaryPages, "ProductDetailPage");
 const CartPage = lazyNamed(loadSecondaryPages, "CartPage");
@@ -146,6 +146,14 @@ const CartFlyOverlay = lazyNamed(loadSecondaryPages, "CartFlyOverlay");
 const RouteActionBridge = lazyNamed(loadSecondaryPages, "RouteActionBridge");
 const ChatWidget = lazyNamed(loadSecondaryPages, "ChatWidget");
 const AiAssistantWidget = lazyNamed(loadSecondaryPages, "AiAssistantWidget");
+const SalePage = lazy(() => import("./pages/secondary/catalog/SalePage"));
+const ClubsPage = lazy(() => import("./pages/secondary/catalog/ClubsPage"));
+const BallsPage = lazy(() => import("./pages/secondary/catalog/BallsPage"));
+const BagsPage = lazy(() => import("./pages/secondary/catalog/BagsPage"));
+const ApparelPage = lazy(() => import("./pages/secondary/catalog/ApparelPage"));
+const AccessoriesPage = lazy(
+  () => import("./pages/secondary/catalog/AccessoriesPage"),
+);
 
 function HomePage() {
   const { t } = useTranslation();
@@ -156,7 +164,9 @@ function HomePage() {
   const [spotlightBag, setSpotlightBag] = useState<BagItem | null>(null);
   const [spotlightAccessory, setSpotlightAccessory] =
     useState<AccessoryItem | null>(null);
-  const [totalProductCount, setTotalProductCount] = useState<number | null>(null);
+  const [totalProductCount, setTotalProductCount] = useState<number | null>(
+    null,
+  );
   const [brandCount, setBrandCount] = useState<number | null>(null);
   const [homeCategoryCounts, setHomeCategoryCounts] = useState({
     drivers: null as number | null,
@@ -244,8 +254,8 @@ function HomePage() {
       setGolfShopMapError(null);
       setNearbyGolfShops([]);
 
-        if (!("geolocation" in navigator)) {
-          if (!cancelled) {
+      if (!("geolocation" in navigator)) {
+        if (!cancelled) {
           setGolfShopMapError(t("home.nearbyShopsLocationUnavailable"));
           setGolfShopMapLoading(false);
         }
@@ -256,10 +266,7 @@ function HomePage() {
         async ({ coords }) => {
           if (cancelled) return;
 
-          const center: [number, number] = [
-            coords.latitude,
-            coords.longitude,
-          ];
+          const center: [number, number] = [coords.latitude, coords.longitude];
           setGolfShopMapCenter(center);
 
           try {
@@ -276,9 +283,7 @@ function HomePage() {
             }
           } catch {
             if (!cancelled) {
-              setGolfShopMapError(
-                t("home.nearbyShopsUnavailable"),
-              );
+              setGolfShopMapError(t("home.nearbyShopsUnavailable"));
             }
           } finally {
             if (!cancelled) {
@@ -363,7 +368,8 @@ function HomePage() {
     };
   }, []);
 
-  const formatExactCount = (count: number) => new Intl.NumberFormat().format(count);
+  const formatExactCount = (count: number) =>
+    new Intl.NumberFormat().format(count);
   const categoryCountLabel = (count: number | null) =>
     count === null
       ? "..."
@@ -525,12 +531,24 @@ function HomePage() {
                 <div className="mt-12 flex flex-wrap gap-4 pt-8 border-t border-[var(--gl-border)]">
                   {(
                     [
-                      [totalProductCount !== null ? formatProductCount(totalProductCount) : "...", "home.statProducts", "🏌️", true],
-                      [brandCount !== null ? `${brandCount}+` : "...", "home.statBrands", "🏆", true],
+                      [
+                        totalProductCount !== null
+                          ? formatProductCount(totalProductCount)
+                          : "...",
+                        "home.statProducts",
+                        "🏌️",
+                        true,
+                      ],
+                      [
+                        brandCount !== null ? `${brandCount}+` : "...",
+                        "home.statBrands",
+                        "🏆",
+                        true,
+                      ],
                       ["98%", "home.statGolfers", "⛳", false],
                     ] as [string, string, string, boolean][]
                   ).map(([value, labelKey, icon, isLive], idx) => (
-                    <div 
+                    <div
                       key={labelKey}
                       style={{ animationDelay: `${idx * 1.5}s` }}
                       className="group/stat animate-hero-float relative flex flex-col items-start gap-1 rounded-2xl border border-[var(--gl-border-soft)] bg-[var(--gl-surface)] p-5 pr-8 shadow-sm transition-all hover:border-[#22c55e]/30 hover:shadow-md"
@@ -538,7 +556,9 @@ function HomePage() {
                       {isLive && (
                         <div className="absolute right-3 top-3 flex items-center gap-1.5 opacity-60">
                           <span className="h-1.5 w-1.5 rounded-full bg-[#22c55e] animate-pulse" />
-                          <span className="text-[9px] font-bold uppercase tracking-widest leading-none text-slate-500 dark:text-slate-400">Live</span>
+                          <span className="text-[9px] font-bold uppercase tracking-widest leading-none text-slate-500 dark:text-slate-400">
+                            Live
+                          </span>
                         </div>
                       )}
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#22c55e]/10 text-xl transition-transform group-hover/stat:scale-110">
@@ -557,38 +577,64 @@ function HomePage() {
                 </div>
               </div>
               <div className="relative">
-              <div
-                onMouseMove={handleHeroMouseMove}
-                className="group relative block w-full aspect-square overflow-hidden rounded-3xl bg-[var(--gl-surface-muted)] border border-[var(--gl-border-soft)] text-left transition-all duration-500 ease-out hover:-translate-y-1.5 hover:shadow-xl hover:shadow-[#22c55e]/10"
-              >
+                <div
+                  onMouseMove={handleHeroMouseMove}
+                  className="group relative block w-full aspect-square overflow-hidden rounded-3xl bg-[var(--gl-surface-muted)] border border-[var(--gl-border-soft)] text-left transition-all duration-500 ease-out hover:-translate-y-1.5 hover:shadow-xl hover:shadow-[#22c55e]/10"
+                >
                   {/* Schematic / Blueprint Background */}
                   <div className="absolute inset-0 z-0 opacity-[0.08] dark:opacity-[0.12]">
-                    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <svg
+                      width="100%"
+                      height="100%"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
                       <defs>
-                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1"/>
+                        <pattern
+                          id="grid"
+                          width="40"
+                          height="40"
+                          patternUnits="userSpaceOnUse"
+                        >
+                          <path
+                            d="M 40 0 L 0 0 0 40"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1"
+                          />
                         </pattern>
                       </defs>
                       <rect width="100%" height="100%" fill="url(#grid)" />
                       {/* Stylized Golf Hole Path - Animated Tracer */}
-                      <path 
-                        d="M 50,350 Q 150,300 100,200 T 350,50" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
+                      <path
+                        d="M 50,350 Q 150,300 100,200 T 350,50"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
                         strokeDasharray="12,8"
                         className="animate-shot-tracer"
                       />
-                      <circle cx="350" cy="50" r="10" fill="currentColor" opacity="0.5" />
-                      <circle cx="50" cy="350" r="15" fill="currentColor" opacity="0.3" />
+                      <circle
+                        cx="350"
+                        cy="50"
+                        r="10"
+                        fill="currentColor"
+                        opacity="0.5"
+                      />
+                      <circle
+                        cx="50"
+                        cy="350"
+                        r="15"
+                        fill="currentColor"
+                        opacity="0.3"
+                      />
                     </svg>
                   </div>
 
                   {/* Interactive Glow Overlay */}
-                  <div 
+                  <div
                     className="absolute inset-0 z-0 pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100"
                     style={{
-                      background: `radial-gradient(circle 120px at ${heroMousePos.x}% ${heroMousePos.y}%, rgba(34, 197, 94, 0.08), transparent)`
+                      background: `radial-gradient(circle 120px at ${heroMousePos.x}% ${heroMousePos.y}%, rgba(34, 197, 94, 0.08), transparent)`,
                     }}
                   />
 
@@ -609,13 +655,49 @@ function HomePage() {
                         xmlns="http://www.w3.org/2000/svg"
                       >
                         {/* Clean Pulsing Rings — higher base visibility on light surfaces */}
-                        <circle cx="100" cy="100" r="40" fill="#15803e" className="dark:fill-[#22c55e]" opacity="0.28">
-                          <animate attributeName="r" values="40;55;40" dur="3s" repeatCount="indefinite" />
-                          <animate attributeName="opacity" values="0.28;0.06;0.28" dur="3s" repeatCount="indefinite" />
+                        <circle
+                          cx="100"
+                          cy="100"
+                          r="40"
+                          fill="#15803e"
+                          className="dark:fill-[#22c55e]"
+                          opacity="0.28"
+                        >
+                          <animate
+                            attributeName="r"
+                            values="40;55;40"
+                            dur="3s"
+                            repeatCount="indefinite"
+                          />
+                          <animate
+                            attributeName="opacity"
+                            values="0.28;0.06;0.28"
+                            dur="3s"
+                            repeatCount="indefinite"
+                          />
                         </circle>
-                        <circle cx="100" cy="100" r="40" fill="#15803e" className="dark:fill-[#22c55e]" opacity="0.2">
-                          <animate attributeName="r" values="40;70;40" dur="4s" begin="1.5s" repeatCount="indefinite" />
-                          <animate attributeName="opacity" values="0.2;0.04;0.2" dur="4s" begin="1.5s" repeatCount="indefinite" />
+                        <circle
+                          cx="100"
+                          cy="100"
+                          r="40"
+                          fill="#15803e"
+                          className="dark:fill-[#22c55e]"
+                          opacity="0.2"
+                        >
+                          <animate
+                            attributeName="r"
+                            values="40;70;40"
+                            dur="4s"
+                            begin="1.5s"
+                            repeatCount="indefinite"
+                          />
+                          <animate
+                            attributeName="opacity"
+                            values="0.2;0.04;0.2"
+                            dur="4s"
+                            begin="1.5s"
+                            repeatCount="indefinite"
+                          />
                         </circle>
 
                         {/* Main Map Circle — slightly deeper green in light mode for contrast */}
@@ -665,7 +747,7 @@ function HomePage() {
                       {t("home.heroOverlayReviews")}
                     </p>
                   </div>
-              </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1103,35 +1185,35 @@ function HomePage() {
                 >
                   <div className="relative overflow-hidden border-b border-[var(--gl-border-muted)] bg-gradient-to-br from-[#22c55e]/10 via-[var(--gl-surface-muted)]/80 to-[#d7a422]/10 px-6 py-5 backdrop-blur-sm">
                     <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-4">
-                      <div className="inline-flex items-center gap-3 rounded-2xl border border-[var(--gl-border-soft)] bg-[var(--gl-surface)]/80 px-3 py-2 shadow-sm">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#22c55e]/15 text-lg">
-                          {trustModalIcon[trustModal]}
+                      <div className="flex-1 space-y-4">
+                        <div className="inline-flex items-center gap-3 rounded-2xl border border-[var(--gl-border-soft)] bg-[var(--gl-surface)]/80 px-3 py-2 shadow-sm">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#22c55e]/15 text-lg">
+                            {trustModalIcon[trustModal]}
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                              {t(trustModalCopy[trustModal].titleKey)}
+                            </h3>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                              {t(trustModalCopy[trustModal].subKey)}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                            {t(trustModalCopy[trustModal].titleKey)}
-                          </h3>
-                          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                            {t(trustModalCopy[trustModal].subKey)}
+                        <div className="mt-4 rounded-2xl border border-[var(--gl-border-soft)] bg-[var(--gl-surface)]/70 p-4 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.45)]">
+                          <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                            {t(trustModalCopy[trustModal].bodyKey)}
                           </p>
                         </div>
                       </div>
-                      <div className="mt-4 rounded-2xl border border-[var(--gl-border-soft)] bg-[var(--gl-surface)]/70 p-4 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.45)]">
-                        <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-                          {t(trustModalCopy[trustModal].bodyKey)}
-                        </p>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setTrustModal(null)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--gl-border)] text-slate-700 transition-colors hover:bg-[var(--gl-hover)] dark:text-slate-200"
+                        aria-label={t("product.modalClose")}
+                      >
+                        ✕
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setTrustModal(null)}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--gl-border)] text-slate-700 transition-colors hover:bg-[var(--gl-hover)] dark:text-slate-200"
-                      aria-label={t("product.modalClose")}
-                    >
-                      ✕
-                    </button>
-                  </div>
                   </div>
                 </div>
               </div>
@@ -1193,7 +1275,8 @@ function HomePage() {
                                 alt={name}
                                 loading="lazy"
                                 onError={(event) => {
-                                  event.currentTarget.src = "/products/club.jpg";
+                                  event.currentTarget.src =
+                                    "/products/club.jpg";
                                 }}
                                 className="h-full w-full object-cover transition-transform group-hover:scale-110"
                               />
@@ -1423,20 +1506,47 @@ function AppRoutes() {
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/support" element={<SupportShell slug="home" />} />
-          <Route path="/support/contact" element={<SupportShell slug="contact" />} />
+          <Route
+            path="/support/contact"
+            element={<SupportShell slug="contact" />}
+          />
           <Route path="/support/faqs" element={<SupportShell slug="faqs" />} />
-          <Route path="/support/shipping" element={<SupportShell slug="shipping" />} />
-          <Route path="/support/returns" element={<SupportShell slug="returns" />} />
-          <Route path="/support/size-guide" element={<SupportShell slug="size-guide" />} />
-          <Route path="/support/track-order" element={<SupportShell slug="track-order" />} />
-          <Route path="/support/privacy" element={<SupportShell slug="privacy" />} />
-          <Route path="/support/terms" element={<SupportShell slug="terms" />} />
-          <Route path="/support/cookies" element={<SupportShell slug="cookies" />} />
+          <Route
+            path="/support/shipping"
+            element={<SupportShell slug="shipping" />}
+          />
+          <Route
+            path="/support/returns"
+            element={<SupportShell slug="returns" />}
+          />
+          <Route
+            path="/support/size-guide"
+            element={<SupportShell slug="size-guide" />}
+          />
+          <Route
+            path="/support/track-order"
+            element={<SupportShell slug="track-order" />}
+          />
+          <Route
+            path="/support/privacy"
+            element={<SupportShell slug="privacy" />}
+          />
+          <Route
+            path="/support/terms"
+            element={<SupportShell slug="terms" />}
+          />
+          <Route
+            path="/support/cookies"
+            element={<SupportShell slug="cookies" />}
+          />
           <Route path="/careers" element={<CompanyShell slug="careers" />} />
           <Route path="/press" element={<CompanyShell slug="press" />} />
           <Route path="/blog" element={<CompanyShell slug="blog" />} />
           <Route path="/partners" element={<CompanyShell slug="partners" />} />
-          <Route path="/affiliates" element={<CompanyShell slug="affiliates" />} />
+          <Route
+            path="/affiliates"
+            element={<CompanyShell slug="affiliates" />}
+          />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/my-page" element={<MyPage />} />
           <Route path="/sale" element={<SalePage />} />

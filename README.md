@@ -43,11 +43,14 @@ docker compose up -d
 
 ### 3. Configure environment
 
-Create backend env files as needed:
+Copy the tracked example files for each workspace and fill them with your own secrets before running the apps locally:
 
-- `backend/.env`
+- `backend/.env` (copy from `backend/.env.example`)
 - `backend/.env.development`
 - `backend/.env.production`
+- `frontend/.env` (optional override copied from `frontend/.env.example`)
+
+Only the `*.env.example` files live in source control; the generated `.env*` files with real credentials should remain local and are ignored by Git.
 
 ### 4. Run migrations and seed data
 
@@ -75,7 +78,7 @@ npm run dev
 
 ## Environment Variables
 
-Backend expects these important variables:
+Backend expects these important variables (see `backend/.env.example` for a safe placeholder set):
 
 - `NODE_ENV`: `development`, `test`, or `production`
 - `PORT`: backend port
@@ -96,12 +99,31 @@ Backend expects these important variables:
 - `GRAPHQL_MAX_COMPLEXITY`
 - `CACHE_TTL_MS`
 - `LOG_LEVEL`
+- `PRODUCT_IMAGE_UPLOAD_DIR`
+- `PRODUCT_IMAGE_BASE_URL`
+
+## Secret handling
+
+- Treat the `.env.example` files in `backend/` and `frontend/` as the canonical, shareable templates for each workspace.
+- Copy them to `.env`, `.env.development`, etc., and inject your real credentials from a vault or local secret storage—never check those files in.
+- The repository ignores `.env*` at every level, so committing secrets is not necessary; keep production values in your deployment platform or encrypted storage service and only load them into the runtime when needed.
+
+## Asset storage notes
+
+- Admin product images still land in `frontend/public/products` by default, but `PRODUCT_IMAGE_UPLOAD_DIR` lets you point uploads to a different filesystem location and `PRODUCT_IMAGE_BASE_URL` controls the returned URL prefix.
+- The frontend and future cloud deployments can reuse the same `ProductImageStorage` abstraction; swapping in an S3/Cloudinary implementation only requires providing the new adapter via Nest providers and wiring the same controller outcome.
 
 ## API and Versioning
 
 REST infrastructure endpoints support URI versioning with `v1`, while remaining backward-compatible for unversioned health/metrics routes.
 
 Examples:
+
+## Clean-sharing workflow
+
+- Run `npm run export:source -- --output=/path/to/golf-ecommerce-source.zip` to create a clean, zipped archive. The script lives at `scripts/export-source.mjs` and simply calls `git archive` on `HEAD` so every exported file is a tracked source file (no `.git`, `node_modules`, caches, coverage reports, or ignored env files slip in).
+- Before packaging, make sure there are no untracked files that need to be shared; the script only bundles tracked files, so any new helpers should be staged or committed first.
+- If you need to document the workflow or preferred exclusions, see `docs/source-export.md` for the finer details on what stays out of shared zips.
 
 - `GET /health`
 - `GET /v1/health`

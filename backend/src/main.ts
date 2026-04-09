@@ -29,6 +29,7 @@ async function bootstrap() {
     prefix: 'v',
     defaultVersion: '1',
   });
+  app.enableShutdownHooks();
 
   const port = parseInt(process.env.PORT ?? "3000", 10) || 3000;
   const allowOrigin = new Set<string>([

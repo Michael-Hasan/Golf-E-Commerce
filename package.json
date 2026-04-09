@@ -8,6 +8,7 @@
     "build": "npm run build --prefix backend",
     "dev": "node scripts/dev.mjs",
     "dev:frontend": "npm run dev --prefix frontend",
-    "dev:backend": "npm run start:dev --prefix backend"
+    "dev:backend": "npm run start:dev --prefix backend",
+    "export:source": "node scripts/export-source.mjs"
   }
 }
