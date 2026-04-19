@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Emmett Ortiz silhouette">
+  <defs>
+    <linearGradient id="g4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316" />
+      <stop offset="100%" stop-color="#facc15" />
+    </linearGradient>
+  </defs>
+  <rect width="240" height="240" rx="32" fill="#0b1220" />
+  <circle cx="120" cy="74" r="46" fill="#ffedd5" opacity="0.95" />
+  <path d="M70 166 Q120 210 170 166" stroke="#fed7aa" stroke-width="14" fill="none" stroke-linecap="round" />
+  <circle cx="94" cy="70" r="5" fill="#0b1220" />
+  <circle cx="146" cy="70" r="5" fill="#0b1220" />
+  <path d="M105 92 Q120 106 135 92" stroke="#0b1220" stroke-width="5" fill="none" stroke-linecap="round" />
+  <rect x="60" y="140" width="120" height="60" rx="18" fill="url(#g4)" opacity="0.88" />
+</svg>

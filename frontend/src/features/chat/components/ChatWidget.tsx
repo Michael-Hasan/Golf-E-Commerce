@@ -26,6 +26,7 @@ export function ChatWidget() {
   const isOpenRef = useRef(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const roomId = "global";
   const token = readStoredToken();
   const identity = useMemo(() => getChatIdentityFromToken(token), [token]);
@@ -122,6 +123,19 @@ export function ChatWidget() {
     listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (!containerRef.current?.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
   const sendMessage = () => {
     const text = draft.trim();
     if (!text) return;
@@ -159,7 +173,10 @@ export function ChatWidget() {
   return (
     <>
       {isOpen ? (
-        <div className="fixed bottom-28 right-4 z-[70] w-[calc(100vw-2rem)] max-w-[22rem] overflow-hidden rounded-2xl border border-[var(--gl-border-card)] bg-[var(--gl-surface)] shadow-2xl shadow-black/15 dark:border-[#5a3b0d] dark:bg-[#130b03] dark:shadow-black/50 sm:right-6">
+        <div
+          ref={containerRef}
+          className="fixed bottom-28 right-4 z-[70] w-[calc(100vw-2rem)] max-w-[22rem] overflow-hidden rounded-2xl border border-[var(--gl-border-card)] bg-[var(--gl-surface)] shadow-2xl shadow-black/15 dark:border-[#5a3b0d] dark:bg-[#130b03] dark:shadow-black/50 sm:right-6"
+        >
           <div className="flex items-center justify-between border-b border-[var(--gl-border-muted)] px-4 py-3 dark:border-[#4a2f09]">
             <div>
               <p className="text-sm font-semibold text-[var(--gl-heading)] dark:text-slate-100">

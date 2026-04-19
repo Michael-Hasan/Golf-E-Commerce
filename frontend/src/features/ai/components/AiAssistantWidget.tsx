@@ -25,6 +25,7 @@ export function AiAssistantWidget() {
     t("ai.suggest4"),
   ]);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const token = readStoredToken();
   const identity = useMemo(() => getChatIdentityFromToken(token), [token]);
 
@@ -52,6 +53,19 @@ export function AiAssistantWidget() {
     if (!listRef.current) return;
     listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages, isOpen, isThinking]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (!containerRef.current?.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
 
   const askAi = async (question: string) => {
     const text = question.trim();
@@ -139,7 +153,10 @@ export function AiAssistantWidget() {
   return (
     <>
       {isOpen ? (
-        <div className="fixed bottom-28 left-4 z-[70] w-[calc(100vw-2rem)] max-w-[22rem] overflow-hidden rounded-2xl border border-[var(--gl-border-card)] bg-[var(--gl-surface)] shadow-2xl shadow-black/15 dark:border-[#224b86] dark:bg-[#071126] dark:shadow-black/50 sm:left-6">
+        <div
+          ref={containerRef}
+          className="fixed bottom-28 left-4 z-[70] w-[calc(100vw-2rem)] max-w-[22rem] overflow-hidden rounded-2xl border border-[var(--gl-border-card)] bg-[var(--gl-surface)] shadow-2xl shadow-black/15 dark:border-[#224b86] dark:bg-[#071126] dark:shadow-black/50 sm:left-6"
+        >
           <div className="flex items-center justify-between border-b border-[var(--gl-border-muted)] px-4 py-3 dark:border-[#1b355f]">
             <div>
               <p className="text-sm font-semibold text-[var(--gl-heading)] dark:text-slate-100">

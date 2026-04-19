@@ -157,6 +157,14 @@ export class AiChatService {
         const status = String(fetchErr?.status ?? 'n/a');
         const messageText =
           error instanceof Error ? error.message : 'unknown Gemini error';
+        const isServiceUnavailable = fetchErr?.status === 503;
+        if (isServiceUnavailable) {
+          this.logger.warn(
+            `Gemini model ${modelName} throttled with 503; retrying next model`,
+          );
+          await this.delay(500);
+          continue;
+        }
         const isQuotaOrRateLimit =
           fetchErr?.status === 429 ||
           messageText.includes('RESOURCE_EXHAUSTED') ||
@@ -180,6 +188,10 @@ export class AiChatService {
     }
 
     return { type: 'failed' };
+  }
+
+  private delay(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private safeParseLlmReply(

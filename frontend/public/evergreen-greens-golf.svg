@@ -1,0 +1,24 @@
+<svg viewBox="0 0 420 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Evergreen Greens Golf Co. signature emblem">
+  <defs>
+    <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a5a1f" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+    <linearGradient id="flagGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fde68a" />
+      <stop offset="100%" stop-color="#f97316" />
+    </linearGradient>
+  </defs>
+  <rect width="420" height="260" rx="24" fill="url(#greenGradient)" />
+  <circle cx="340" cy="60" r="40" fill="#fef3c7" opacity="0.9" />
+  <rect x="60" y="60" width="12" height="150" fill="#b5b5b5" />
+  <path d="M72 62 L180 90 L72 118 Z" fill="url(#flagGradient)" />
+  <circle cx="80" cy="210" r="42" fill="#0f766e" opacity="0.9" />
+  <path d="M100 190 L120 210 L100 230" stroke="#fef3c7" stroke-width="5" fill="none" stroke-linecap="round" />
+  <text x="220" y="150" font-family="'Inter', 'Segoe UI', system-ui" font-size="32" font-weight="600" fill="#e0f2fe">
+    Evergreen
+  </text>
+  <text x="220" y="190" font-family="'Inter', 'Segoe UI', system-ui" font-size="24" font-weight="500" fill="#e0f2fe">
+    Greens Golf Co.
+  </text>
+</svg>

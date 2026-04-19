@@ -1,26 +1,21 @@
 import { spawn } from "node:child_process";
 
-const processes = [
-  {
-    name: "backend",
-    color: "\u001b[36m",
-    reset: "\u001b[0m",
-    command: "npm",
-    args: ["run", "start:dev", "--prefix", "backend"],
-  },
-  {
-    name: "frontend",
-    color: "\u001b[35m",
-    reset: "\u001b[0m",
-    command: "npm",
-    args: ["run", "dev", "--prefix", "frontend"],
-  },
-];
+const backendHost = process.env.BACKEND_HOST ?? "localhost";
+const backendPort = process.env.PORT ?? "3000";
+const defaultBackendOrigin = `http://${backendHost}:${backendPort}`;
+const frontendApiUrl = process.env.VITE_API_URL ?? defaultBackendOrigin;
+const graphqlProbeUrl = `${defaultBackendOrigin}/graphql`;
 
-const children = processes.map((proc) => {
+console.log(`[dev] backend target set to ${defaultBackendOrigin}`);
+console.log(`[dev] frontend VITE_API_URL=${frontendApiUrl}`);
+
+const children = [];
+
+function spawnChild(proc) {
   const child = spawn(proc.command, proc.args, {
     stdio: ["inherit", "pipe", "pipe"],
     shell: false,
+    env: proc.env ?? process.env,
   });
 
   const prefix = `${proc.color}[${proc.name}]${proc.reset} `;
@@ -57,7 +52,76 @@ const children = processes.map((proc) => {
     shutdown(child);
   });
 
+  children.push(child);
   return child;
+}
+
+async function waitForBackendReady(url, options = {}) {
+  const { timeoutMs = 15000, intervalMs = 1000, attemptTimeoutMs = 2000 } =
+    options;
+  const deadline = Date.now() + timeoutMs;
+  const probeBody = JSON.stringify({ query: "query { __typename }" });
+
+  while (Date.now() < deadline) {
+    let timer;
+    try {
+      const controller = new AbortController();
+      timer = setTimeout(() => controller.abort(), attemptTimeoutMs);
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: probeBody,
+        signal: controller.signal,
+      });
+      if (response.ok) {
+        return;
+      }
+    } catch {
+      // ignore; backend still booting
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  throw new Error("Backend did not respond in time");
+}
+
+async function main() {
+  spawnChild({
+    name: "backend",
+    color: "\u001b[36m",
+    reset: "\u001b[0m",
+    command: "npm",
+    args: ["run", "start:dev", "--prefix", "backend"],
+  });
+
+  try {
+    await waitForBackendReady(graphqlProbeUrl);
+    console.log("[dev] backend ready");
+  } catch (error) {
+    console.warn(`[dev] backend readiness check failed: ${error.message}`);
+  }
+
+  spawnChild({
+    name: "frontend",
+    color: "\u001b[35m",
+    reset: "\u001b[0m",
+    command: "npm",
+    args: ["run", "dev", "--prefix", "frontend"],
+    env: {
+      ...process.env,
+      VITE_API_URL: frontendApiUrl,
+    },
+  });
+}
+
+main().catch((error) => {
+  console.error("[dev] failed to start dev tooling", error);
+  process.exit(1);
 });
 
 let shuttingDown = false;

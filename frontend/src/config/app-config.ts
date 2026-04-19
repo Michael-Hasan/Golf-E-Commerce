@@ -5,9 +5,19 @@
 const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 const REST_API_BASE = `${API_BASE}/v1`;
 
+const API_BASE_PATH = (() => {
+  if (!API_BASE) return "";
+  try {
+    const url = new URL(API_BASE);
+    return url.pathname.replace(/\/$/, "");
+  } catch {
+    return API_BASE.startsWith("/") ? API_BASE : "";
+  }
+})();
+
 export const GRAPHQL_ENDPOINT = `${API_BASE}/graphql`;
-export const CHAT_WS_ENDPOINT = `${API_BASE}/chat`;
-export const SOCKET_IO_PATH = `${API_BASE || ""}/socket.io`;
+export const CHAT_WS_ENDPOINT = `${API_BASE || ""}/chat`;
+export const SOCKET_IO_PATH = `${API_BASE_PATH || ""}/socket.io`;
 export const AI_CHAT_ENDPOINT = `${REST_API_BASE}/ai-chat/respond`;
 export const AI_PROJECT_INFO_ENDPOINT = `${REST_API_BASE}/ai-chat/project-info`;
 export const ADMIN_PRODUCT_UPLOAD_ENDPOINT =

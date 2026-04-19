@@ -65,6 +65,35 @@ export default function AboutPageView() {
         </div>
       </section>
 
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-center">
+          <figure className="lg:col-span-5">
+            <img
+              src="/evergreen-greens-golf.svg"
+              alt="Evergreen Greens Golf Co. emblem with a flag on a course"
+              className="h-[280px] w-full rounded-3xl border border-[var(--gl-border)] bg-[var(--gl-surface)] object-cover shadow-xl"
+              loading="lazy"
+            />
+            <figcaption className="mt-3 text-sm font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+              Evergreen Greens Golf Co.
+            </figcaption>
+          </figure>
+          <div className="space-y-4 text-base leading-relaxed text-slate-600 dark:text-slate-400 lg:col-span-7">
+            <h3 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--gl-heading)]">
+              The company behind the course
+            </h3>
+            <p>
+              Evergreen Greens Golf Co. has shaped championship-caliber courses and premium practice spaces for twenty-seven years, bringing regenerative turf science
+              and thoughtful hospitality to every layout.
+            </p>
+            <p>
+              We partner with Evergreen Greens to deliver authentic, course-inspired products because their drives align with ours: precision, sustainability, and a love for the
+              game that is built to last.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section className="border-y border-[var(--gl-border)] bg-[var(--gl-surface-60)] py-14 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
@@ -168,6 +197,110 @@ export default function AboutPageView() {
                 </p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+        <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+          <div className="lg:col-span-5">
+            <h2 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--gl-heading)] sm:text-3xl">
+              Meet the crew
+            </h2>
+            <p className="mt-2 text-sm font-medium text-[var(--gl-accent-text)]">
+              Founders, caddies, and craftspersons who keep our gear rooted in course wisdom.
+            </p>
+          </div>
+          <div className="lg:col-span-7">
+            <div className="grid gap-6 sm:grid-cols-2">
+              {(
+                [
+                  {
+                    name: "Avery Kim",
+                    role: "Founding Course Strategist",
+                    detail: "Translates touring insights into every club profile and green craft narrative.",
+                    image: "https://images.pexels.com/photos/6573246/pexels-photo-6573246.jpeg?auto=compress&cs=tinysrgb&h=400&w=400",
+                  },
+                  {
+                    name: "Jordan Silva",
+                    role: "Director of Fit & Fabrication",
+                    detail: "Leads performance fittings with data + instinct so partners always feel the right swing in hand.",
+                    image: "https://images.pexels.com/photos/6256830/pexels-photo-6256830.jpeg?auto=compress&cs=tinysrgb&h=400&w=400",
+                  },
+                  {
+                    name: "Harper Li",
+                    role: "Retail Host & Community Lead",
+                    detail: "Keeps our store experiences warm and ensures local players get the thoughtful service they deserve.",
+                    image: "https://images.pexels.com/photos/4475691/pexels-photo-4475691.jpeg?auto=compress&cs=tinysrgb&h=400&w=400",
+                  },
+                  {
+                    name: "Emmett Ortiz",
+                    role: "On-course Crew Lead",
+                    detail: "Builds and maintains the demo rigs, instruction hubs, and pop-up clinics we visit together.",
+                    image: "https://images.pexels.com/photos/7677636/pexels-photo-7677636.jpeg?auto=compress&cs=tinysrgb&h=400&w=400",
+                  },
+                ] as const
+              ).map((person) => (
+                <article
+                  key={person.name}
+                  className="rounded-2xl border border-[var(--gl-border-soft)] bg-[var(--gl-surface)] p-5 shadow-sm transition-shadow hover:shadow-md"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-16 w-16 overflow-hidden rounded-full border border-[var(--gl-border-soft)] bg-[var(--gl-raised)]">
+                      <img
+                        src={person.image}
+                        alt={`${person.name} portrait`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">
+                        {person.role}
+                      </p>
+                      <h3 className="mt-1 font-[family-name:var(--font-heading)] text-lg font-semibold text-[var(--gl-heading)]">
+                        {person.name}
+                      </h3>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                    {person.detail}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-[var(--gl-border)] bg-[var(--gl-surface-60)] py-14 sm:py-16 lg:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
+            <div className="lg:w-1/3">
+              <h2 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--gl-heading)] sm:text-3xl">
+                Milestones on the green
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                Key steps in how Evergreen Greens Golf Co. and our partners have grown from a single practice bay to a national platform.
+              </p>
+            </div>
+            <ol className="lg:w-2/3 space-y-6 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+              {(
+                [
+                  { year: "1999", label: "First course partnership in Oregon’s Willamette Valley" },
+                  { year: "2008", label: "Opened the flagship fitting loft in Scottsdale" },
+                  { year: "2016", label: "Launched the regenerative turf lab with touring agronomists" },
+                  { year: "2023", label: "Built mobile demo rigs for coast-to-coast pop-up clinics" },
+                ] as const
+              ).map((event) => (
+                <li key={event.year} className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--gl-border-soft)] bg-[var(--gl-surface)] font-[family-name:var(--font-heading)] text-lg font-bold text-[#22c55e]">
+                    {event.year.slice(-2)}
+                  </div>
+                  <span>{event.label}</span>
+                </li>
+              ))}
+            </ol>
           </div>
         </div>
       </section>
